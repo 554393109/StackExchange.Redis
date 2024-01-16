@@ -287,7 +287,7 @@ namespace StackExchange.Redis
         /// <param name="key">The key of the hash.</param>
         /// <param name="hashField">The field in the hash to delete.</param>
         /// <param name="flags">The flags to use for this operation.</param>
-        /// <returns>The number of fields that were removed.</returns>
+        /// <returns><see langword="true"/> if the field was removed.</returns>
         /// <remarks><seealso href="https://redis.io/commands/hdel"/></remarks>
         Task<bool> HashDeleteAsync(RedisKey key, RedisValue hashField, CommandFlags flags = CommandFlags.None);
 
@@ -657,7 +657,8 @@ namespace StackExchange.Redis
         /// <seealso href="https://redis.io/commands/persist"/>
         /// </para>
         /// </remarks>
-        Task<bool> KeyExpireAsync(RedisKey key, TimeSpan? expiry, CommandFlags flags = CommandFlags.None);
+        [Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
+        Task<bool> KeyExpireAsync(RedisKey key, TimeSpan? expiry, CommandFlags flags);
 
         /// <summary>
         /// Set a timeout on <paramref name="key"/>.
@@ -666,14 +667,14 @@ namespace StackExchange.Redis
         /// </summary>
         /// <param name="key">The key to set the expiration for.</param>
         /// <param name="expiry">The timeout to set.</param>
-        /// <param name="when">Since Redis 7.0.0, you can choose under which condition the expiration will be set using <see cref="ExpireWhen"/>.</param>
+        /// <param name="when">In Redis 7+, we choose under which condition the expiration will be set using <see cref="ExpireWhen"/>.</param>
         /// <param name="flags">The flags to use for this operation.</param>
         /// <returns><see langword="true"/> if the timeout was set. <see langword="false"/> if key does not exist or the timeout could not be set.</returns>
         /// <remarks>
         /// <seealso href="https://redis.io/commands/expire"/>,
         /// <seealso href="https://redis.io/commands/pexpire"/>
         /// </remarks>
-        Task<bool> KeyExpireAsync(RedisKey key, TimeSpan? expiry, ExpireWhen when, CommandFlags flags = CommandFlags.None);
+        Task<bool> KeyExpireAsync(RedisKey key, TimeSpan? expiry, ExpireWhen when = ExpireWhen.Always, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
         /// Set a timeout on <paramref name="key"/>.
@@ -701,7 +702,8 @@ namespace StackExchange.Redis
         /// <seealso href="https://redis.io/commands/persist"/>
         /// </para>
         /// </remarks>
-        Task<bool> KeyExpireAsync(RedisKey key, DateTime? expiry, CommandFlags flags = CommandFlags.None);
+        [Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
+        Task<bool> KeyExpireAsync(RedisKey key, DateTime? expiry, CommandFlags flags);
 
         /// <summary>
         /// Set a timeout on <paramref name="key"/>.
@@ -710,14 +712,14 @@ namespace StackExchange.Redis
         /// </summary>
         /// <param name="key">The key to set the expiration for.</param>
         /// <param name="expiry">The timeout to set.</param>
-        /// <param name="when">Since Redis 7.0.0, you can choose under which condition the expiration will be set using <see cref="ExpireWhen"/>.</param>
+        /// <param name="when">In Redis 7+, we choose under which condition the expiration will be set using <see cref="ExpireWhen"/>.</param>
         /// <param name="flags">The flags to use for this operation.</param>
         /// <returns><see langword="true"/> if the timeout was set. <see langword="false"/> if key does not exist or the timeout could not be set.</returns>
         /// <remarks>
         /// <seealso href="https://redis.io/commands/expire"/>,
         /// <seealso href="https://redis.io/commands/pexpire"/>
         /// </remarks>
-        Task<bool> KeyExpireAsync(RedisKey key, DateTime? expiry, ExpireWhen when, CommandFlags flags = CommandFlags.None);
+        Task<bool> KeyExpireAsync(RedisKey key, DateTime? expiry, ExpireWhen when = ExpireWhen.Always, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
         /// Returns the absolute time at which the given <paramref name="key"/> will expire, if it exists and has an expiration.
@@ -1246,7 +1248,11 @@ namespace StackExchange.Redis
         /// <param name="values">The values to execute against.</param>
         /// <param name="flags">The flags to use for this operation.</param>
         /// <returns>A dynamic representation of the script's result.</returns>
-        /// <remarks><seealso href="https://redis.io/commands/evalsha"/></remarks>
+        /// <remarks>
+        /// Be aware that this method is not resilient to Redis server restarts. Use <see cref="ScriptEvaluateAsync(string, RedisKey[], RedisValue[], CommandFlags)"/> instead.
+        /// <seealso href="https://redis.io/commands/evalsha"/>
+        /// </remarks>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         Task<RedisResult> ScriptEvaluateAsync(byte[] hash, RedisKey[]? keys = null, RedisValue[]? values = null, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
@@ -1271,6 +1277,31 @@ namespace StackExchange.Redis
         /// <returns>A dynamic representation of the script's result.</returns>
         /// <remarks><seealso href="https://redis.io/commands/eval"/></remarks>
         Task<RedisResult> ScriptEvaluateAsync(LoadedLuaScript script, object? parameters = null, CommandFlags flags = CommandFlags.None);
+
+        /// <summary>
+        /// Read-only variant of the EVAL command that cannot execute commands that modify data, Execute a Lua script against the server.
+        /// </summary>
+        /// <param name="script">The script to execute.</param>
+        /// <param name="keys">The keys to execute against.</param>
+        /// <param name="values">The values to execute against.</param>
+        /// <param name="flags">The flags to use for this operation.</param>
+        /// <returns>A dynamic representation of the script's result.</returns>
+        /// <remarks>
+        /// <seealso href="https://redis.io/commands/eval_ro"/>,
+        /// <seealso href="https://redis.io/commands/evalsha_ro"/>
+        /// </remarks>
+        Task<RedisResult> ScriptEvaluateReadOnlyAsync(string script, RedisKey[]? keys = null, RedisValue[]? values = null, CommandFlags flags = CommandFlags.None);
+
+        /// <summary>
+        /// Read-only variant of the EVALSHA command that cannot execute commands that modify data, Execute a Lua script against the server using just the SHA1 hash.
+        /// </summary>
+        /// <param name="hash">The hash of the script to execute.</param>
+        /// <param name="keys">The keys to execute against.</param>
+        /// <param name="values">The values to execute against.</param>
+        /// <param name="flags">The flags to use for this operation.</param>
+        /// <returns>A dynamic representation of the script's result.</returns>
+        /// <remarks><seealso href="https://redis.io/commands/evalsha_ro"/></remarks>
+        Task<RedisResult> ScriptEvaluateReadOnlyAsync(byte[] hash, RedisKey[]? keys = null, RedisValue[]? values = null, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
         /// Add the specified member to the set stored at key.
@@ -1528,7 +1559,10 @@ namespace StackExchange.Redis
         /// <param name="get">The key pattern to sort by, if any e.g. ExternalKey_* would return the value of ExternalKey_{listvalue} for each entry.</param>
         /// <param name="flags">The flags to use for this operation.</param>
         /// <returns>The sorted elements, or the external values if <c>get</c> is specified.</returns>
-        /// <remarks><seealso href="https://redis.io/commands/sort"/></remarks>
+        /// <remarks>
+        /// <seealso href="https://redis.io/commands/sort"/>,
+        /// <seealso href="https://redis.io/commands/sort_ro"/>
+        /// </remarks>
         Task<RedisValue[]> SortAsync(RedisKey key, long skip = 0, long take = -1, Order order = Order.Ascending, SortType sortType = SortType.Numeric, RedisValue by = default, RedisValue[]? get = null, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
@@ -1552,18 +1586,14 @@ namespace StackExchange.Redis
         /// <remarks><seealso href="https://redis.io/commands/sort"/></remarks>
         Task<long> SortAndStoreAsync(RedisKey destination, RedisKey key, long skip = 0, long take = -1, Order order = Order.Ascending, SortType sortType = SortType.Numeric, RedisValue by = default, RedisValue[]? get = null, CommandFlags flags = CommandFlags.None);
 
-        /// <summary>
-        /// Adds the specified member with the specified score to the sorted set stored at key.
-        /// If the specified member is already a member of the sorted set, the score is updated and the element reinserted at the right position to ensure the correct ordering.
-        /// </summary>
-        /// <param name="key">The key of the sorted set.</param>
-        /// <param name="member">The member to add to the sorted set.</param>
-        /// <param name="score">The score for the member to add to the sorted set.</param>
-        /// <param name="flags">The flags to use for this operation.</param>
-        /// <returns><see langword="true"/> if the value was added. <see langword="false"/> if it already existed (the score is still updated).</returns>
-        /// <remarks><seealso href="https://redis.io/commands/zadd"/></remarks>
+        /// <inheritdoc cref="SortedSetAddAsync(RedisKey, RedisValue, double, SortedSetWhen, CommandFlags)" />
+        [Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
         Task<bool> SortedSetAddAsync(RedisKey key, RedisValue member, double score, CommandFlags flags);
 
+        /// <inheritdoc cref="SortedSetAddAsync(RedisKey, RedisValue, double, SortedSetWhen, CommandFlags)" />
+        [Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
+        Task<bool> SortedSetAddAsync(RedisKey key, RedisValue member, double score, When when, CommandFlags flags = CommandFlags.None);
+
         /// <summary>
         /// Adds the specified member with the specified score to the sorted set stored at key.
         /// If the specified member is already a member of the sorted set, the score is updated and the element reinserted at the right position to ensure the correct ordering.
@@ -1575,18 +1605,15 @@ namespace StackExchange.Redis
         /// <param name="flags">The flags to use for this operation.</param>
         /// <returns><see langword="true"/> if the value was added. <see langword="false"/> if it already existed (the score is still updated).</returns>
         /// <remarks><seealso href="https://redis.io/commands/zadd"/></remarks>
-        Task<bool> SortedSetAddAsync(RedisKey key, RedisValue member, double score, When when = When.Always, CommandFlags flags = CommandFlags.None);
+        Task<bool> SortedSetAddAsync(RedisKey key, RedisValue member, double score, SortedSetWhen when = SortedSetWhen.Always, CommandFlags flags = CommandFlags.None);
 
-        /// <summary>
-        /// Adds all the specified members with the specified scores to the sorted set stored at key.
-        /// If a specified member is already a member of the sorted set, the score is updated and the element reinserted at the right position to ensure the correct ordering.
-        /// </summary>
-        /// <param name="key">The key of the sorted set.</param>
-        /// <param name="values">The members and values to add to the sorted set.</param>
-        /// <param name="flags">The flags to use for this operation.</param>
-        /// <returns>The number of elements added to the sorted sets, not including elements already existing for which the score was updated.</returns>
-        /// <remarks><seealso href="https://redis.io/commands/zadd"/></remarks>
+        /// <inheritdoc cref="SortedSetAddAsync(RedisKey, RedisValue, double, SortedSetWhen, CommandFlags)" />
+        [Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
         Task<long> SortedSetAddAsync(RedisKey key, SortedSetEntry[] values, CommandFlags flags);
+
+        /// <inheritdoc cref="SortedSetAddAsync(RedisKey, RedisValue, double, SortedSetWhen, CommandFlags)" />
+        [Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
+        Task<long> SortedSetAddAsync(RedisKey key, SortedSetEntry[] values, When when, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
         /// Adds all the specified members with the specified scores to the sorted set stored at key.
@@ -1598,7 +1625,7 @@ namespace StackExchange.Redis
         /// <param name="flags">The flags to use for this operation.</param>
         /// <returns>The number of elements added to the sorted sets, not including elements already existing for which the score was updated.</returns>
         /// <remarks><seealso href="https://redis.io/commands/zadd"/></remarks>
-        Task<long> SortedSetAddAsync(RedisKey key, SortedSetEntry[] values, When when = When.Always, CommandFlags flags = CommandFlags.None);
+        Task<long> SortedSetAddAsync(RedisKey key, SortedSetEntry[] values, SortedSetWhen when = SortedSetWhen.Always, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
         /// Computes a set operation for multiple sorted sets (optionally using per-set <paramref name="weights"/>),
@@ -2070,6 +2097,29 @@ namespace StackExchange.Redis
         /// </returns>
         /// <remarks><seealso href="https://redis.io/commands/zmscore"/></remarks>
         Task<double?[]> SortedSetScoresAsync(RedisKey key, RedisValue[] members, CommandFlags flags = CommandFlags.None);
+
+        /// <summary>
+        /// Same as <see cref="SortedSetAddAsync(RedisKey, SortedSetEntry[], SortedSetWhen, CommandFlags)" /> but return the number of the elements changed.
+        /// </summary>
+        /// <param name="key">The key of the sorted set.</param>
+        /// <param name="member">The member to add/update to the sorted set.</param>
+        /// <param name="score">The score for the member to add/update to the sorted set.</param>
+        /// <param name="when">What conditions to add the element under (defaults to always).</param>
+        /// <param name="flags">The flags to use for this operation.</param>
+        /// <returns>The number of elements changed.</returns>
+        /// <remarks><seealso href="https://redis.io/commands/zadd"/></remarks>
+        Task<bool> SortedSetUpdateAsync(RedisKey key, RedisValue member, double score, SortedSetWhen when = SortedSetWhen.Always, CommandFlags flags = CommandFlags.None);
+
+        /// <summary>
+        /// Same as <see cref="SortedSetAddAsync(RedisKey, SortedSetEntry[], SortedSetWhen, CommandFlags)" /> but return the number of the elements changed.
+        /// </summary>
+        /// <param name="key">The key of the sorted set.</param>
+        /// <param name="values">The members and values to add/update to the sorted set.</param>
+        /// <param name="when">What conditions to add the element under (defaults to always).</param>
+        /// <param name="flags">The flags to use for this operation.</param>
+        /// <returns>The number of elements changed.</returns>
+        /// <remarks><seealso href="https://redis.io/commands/zadd"/></remarks>
+        Task<long> SortedSetUpdateAsync(RedisKey key, SortedSetEntry[] values, SortedSetWhen when = SortedSetWhen.Always, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
         /// Removes and returns the first element from the sorted set stored at key, by default with the scores ordered from low to high.
@@ -2720,6 +2770,46 @@ namespace StackExchange.Redis
         /// <returns>The length of the string at key, or 0 when key does not exist.</returns>
         /// <remarks><seealso href="https://redis.io/commands/strlen"/></remarks>
         Task<long> StringLengthAsync(RedisKey key, CommandFlags flags = CommandFlags.None);
+
+        /// <summary>
+        /// Implements the longest common subsequence algorithm between the values at <paramref name="first"/> and <paramref name="second"/>,
+        /// returning a string containing the common sequence.
+        /// Note that this is different than the longest common string algorithm,
+        /// since matching characters in the string does not need to be contiguous.
+        /// </summary>
+        /// <param name="first">The key of the first string.</param>
+        /// <param name="second">The key of the second string.</param>
+        /// <param name="flags">The flags to use for this operation.</param>
+        /// <returns>A string (sequence of characters) of the LCS match.</returns>
+        /// <remarks><seealso href="https://redis.io/commands/lcs"/></remarks>
+        Task<string?> StringLongestCommonSubsequenceAsync(RedisKey first, RedisKey second, CommandFlags flags = CommandFlags.None);
+
+        /// <summary>
+        /// Implements the longest common subsequence algorithm between the values at <paramref name="first"/> and <paramref name="second"/>,
+        /// returning the legnth of the common sequence.
+        /// Note that this is different than the longest common string algorithm,
+        /// since matching characters in the string does not need to be contiguous.
+        /// </summary>
+        /// <param name="first">The key of the first string.</param>
+        /// <param name="second">The key of the second string.</param>
+        /// <param name="flags">The flags to use for this operation.</param>
+        /// <returns>The length of the LCS match.</returns>
+        /// <remarks><seealso href="https://redis.io/commands/lcs"/></remarks>
+        Task<long> StringLongestCommonSubsequenceLengthAsync(RedisKey first, RedisKey second, CommandFlags flags = CommandFlags.None);
+
+        /// <summary>
+        /// Implements the longest common subsequence algorithm between the values at <paramref name="first"/> and <paramref name="second"/>,
+        /// returning a list of all common sequences.
+        /// Note that this is different than the longest common string algorithm,
+        /// since matching characters in the string does not need to be contiguous.
+        /// </summary>
+        /// <param name="first">The key of the first string.</param>
+        /// <param name="second">The key of the second string.</param>
+        /// <param name="minLength">Can be used to restrict the list of matches to the ones of a given minimum length.</param>
+        /// <param name="flags">The flags to use for this operation.</param>
+        /// <returns>The result of LCS algorithm, based on the given parameters.</returns>
+        /// <remarks><seealso href="https://redis.io/commands/lcs"/></remarks>
+        Task<LCSMatchResult> StringLongestCommonSubsequenceWithMatchesAsync(RedisKey first, RedisKey second, long minLength = 0, CommandFlags flags = CommandFlags.None);
 
         /// <inheritdoc cref="StringSetAsync(RedisKey, RedisValue, TimeSpan?, bool, When, CommandFlags)" />
         [Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
